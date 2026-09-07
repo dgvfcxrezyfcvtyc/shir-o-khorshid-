@@ -20,6 +20,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # نصب Bun برای ساخت داشبورد
 RUN curl -fsSL <https://bun.sh/install> | bash
+import os
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get("/")
+def home():
+    return {"name": "شیر و خورشید"}
+
+if name == "main":
+    import uvicorn
+
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=int(os.getenv("PORT", "8000")),
+    )
 
 ENV PATH="/root/.bun/bin:$PATH"
 
