@@ -1,29 +1,19 @@
-#!/bin/sh
+#!/usr/bin/env bash
 set -e
-
-# تنظیمات Railway
-export HOST="0.0.0.0"
-export PORT="${PORT:-8000}"
 
 cd /code
 
-# اگر فایل start.sh وجود داشت، همان را اجرا کن
-if [ -x "./start.sh" ]; then
-    exec ./start.sh
-fi
+export HOST="${HOST:-0.0.0.0}"
+export PORT="${PORT:-8000}"
 
-# اجرای FastAPI با Uvicorn
-if [ -f "main.py" ]; then
-    exec uvicorn main:app \
+if [ -f ./start.sh ]; then
+    exec ./start.sh
+elif [ -f ./main.py ]; then
+    exec python main.py --host "$HOST" --port "$PORT"
+elif [ -f ./app.py ]; then
+    exec python app.py
+else
+    exec python -m uvicorn main:app \
         --host "$HOST" \
         --port "$PORT"
 fi
-
-# اجرای Flask
-if [ -f "app.py" ]; then
-    exec gunicorn app:app \
-        --bind "$HOST:$PORT"
-fi
-
-echo "خطا: فایل اجرای برنامه پیدا نشد."
-exit 1
