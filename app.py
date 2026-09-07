@@ -19,6 +19,7 @@ app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
     "sqlite:///shir_khorshid.db"
 )
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+CMD ["sh", "-c", "gunicorn --bind
 
 db = SQLAlchemy(app)
 
