@@ -4,3 +4,8 @@ dockerfilePath = "Dockerfile"
 
 [deploy]
 restartPolicyType = "always"
+restartPolicyMaxRetries = 10
+
+[[deploy.ports]]
+port = 8000
+type = "HTTP"
