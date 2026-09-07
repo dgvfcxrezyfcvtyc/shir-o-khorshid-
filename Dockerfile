@@ -15,42 +15,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     curl \
     unzip \
-    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# نصب Bun برای ساخت داشبورد
+# نصب Bun برای ساخت فرانت‌اند پنل
 RUN curl -fsSL <https://bun.sh/install> | bash
-import os
-from fastapi import FastAPI
-
-app = FastAPI()
-COPY start-railway.sh /start-railway.sh
-RUN chmod +x /start-railway.sh
-
-ENTRYPOINT ["/start-railway.sh"]
-
-@app.get("/")
-def home():
-    return {"name": "شیر و خورشید"}
-
-if name == "main":
-    import uvicorn
-
-    uvicorn.run(
-        app,
-        host="0.0.0.0",
-        port=int(os.getenv("PORT", "8000")),
-    )
 
 ENV PATH="/root/.bun/bin:$PATH"
 
 WORKDIR /build
 
-# آدرس پروژه خودت را جایگزین کن
-RUN git clone --depth 1 <https://github.com/YOUR_USERNAME/shir-o-khorshid.git> .
+# آدرس ریپازیتوری پنل شیر و خورشید را اینجا قرار دهید
+ARG PANEL_REPO=https://github.com/USERNAME/shir-o-khorshid-panel.git
+RUN git clone --depth 1 ${PANEL_REPO} .
 
-# ساخت فرانت‌اند
-RUN if [ -f dashboard/package.json ]; then \
+# ساخت فرانت‌اند در صورت وجود داشبورد
+RUN if [ -d dashboard ]; then \
         cd dashboard && \
         bun install --frozen-lockfile && \
         cd .. && \
@@ -58,36 +37,28 @@ RUN if [ -f dashboard/package.json ]; then \
     fi
 
 # نصب وابستگی‌های پایتون
-RUN if [ -f pyproject.toml ]; then \
-        uv sync --frozen --no-dev; \
-    elif [ -f requirements.txt ]; then \
-        uv venv && \
-        uv pip install -r requirements.txt; \
-    fi
+RUN if [ -f pyproject.toml ]; then uv sync --frozen --no-dev; fi
 
-
+# ایمیج نهایی
 FROM python:${PYTHON_VERSION}-slim-bookworm
 
 WORKDIR /code
 
-ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    HOST=0.0.0.0 \
-    PORT=8000 \
-    PATH="/code/.venv/bin:$PATH"
-
 COPY --from=builder /build /code
+
+ENV PATH="/code/.venv/bin:$PATH" \
+    PYTHONUNBUFFERED=1 \
+    PORT=8000 \
+    HOST=0.0.0.0
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
-    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# اسکریپت اجرای برنامه
 COPY start-railway.sh /start-railway.sh
 
-RUN chmod +x /start-railway.sh && \
-    if [ -f /code/start.sh ]; then chmod +x /code/start.sh; fi
+RUN chmod +x /start-railway.sh \
+    && if [ -f /code/start.sh ]; then chmod +x /code/start.sh; fi
 
 EXPOSE 8000
 
