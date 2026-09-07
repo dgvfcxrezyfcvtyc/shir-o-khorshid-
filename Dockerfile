@@ -1,48 +1,73 @@
 # syntax=docker/dockerfile:1
-ARG PYTHON_VERSION=3.14
-FROM ghcr.io/astral-sh/uv:python$PYTHON_VERSION-bookworm-slim AS builder
-ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_PYTHON_DOWNLOADS=0
+
+ARG PYTHON_VERSION=3.12
+
+FROM ghcr.io/astral-sh/uv:python${PYTHON_VERSION}-bookworm-slim AS builder
+
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_PYTHON_DOWNLOADS=0
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc python3-dev libc6-dev git curl unzip \
+    gcc \
+    python3-dev \
+    libc6-dev \
+    git \
+    curl \
+    unzip \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# نصب bun برای ساخت فرانت‌اند داشبورد (خود ایمیج رسمی این کار را در CI انجام می‌دهد،
-# ولی چون از سورس تازه کلون می‌کنیم باید اینجا خودمان انجامش دهیم)
-RUN curl -fsSL https://bun.sh/install | bash
+# نصب Bun برای ساخت داشبورد
+RUN curl -fsSL <https://bun.sh/install> | bash
+
 ENV PATH="/root/.bun/bin:$PATH"
 
 WORKDIR /build
-RUN git clone --depth 1 https://github.com/PasarGuard/panel.git .
 
-# ساخت خروجی استاتیک داشبورد؛ اگر این پوشه از قبل وجود نداشته باشد،
-# خود برنامه هنگام استارت runtime سعی می‌کند با bun بسازدش که در ایمیج نهایی
-# bun نصب نیست و باعث کرش می‌شود (FileNotFoundError: bun)
-RUN cd dashboard && bun install --frozen-lockfile && cd .. && bash build_dashboard.sh
+# آدرس پروژه خودت را جایگزین کن
+RUN git clone --depth 1 <https://github.com/YOUR_USERNAME/shir-o-khorshid.git> .
 
-# پچ ۱: باگ فعلی برنچ main shir-o-khorshid -- سینتکس پایتون ۲ که در پایتون ۳ SyntaxError می‌دهد
-# و باعث می‌شود کل main.py اصلاً اجرا نشود (کرش کامل هنگام استارت).
-RUN sed -i 's/except ValueError, socket.gaierror:/except (ValueError, socket.gaierror):/' main.py
+# ساخت فرانت‌اند
+RUN if [ -f dashboard/package.json ]; then \
+        cd dashboard && \
+        bun install --frozen-lockfile && \
+        cd .. && \
+        if [ -f build_dashboard.sh ]; then bash build_dashboard.sh; fi; \
+    fi
 
-# پچ ۲: بدون SSL، به‌صورت پیش‌فرض روی  shir-o-khorshid localhost گوش می‌دهد که در Railway
-# باعث "Application failed to respond" می‌شود؛ این پچ همیشه 0.0.0.0 را اجباری می‌کند.
-RUN sed -i 's/bind_args\["host"\] = ip/bind_args["host"] = server_settings.host/' main.py
+# نصب وابستگی‌های پایتون
+RUN if [ -f pyproject.toml ]; then \
+        uv sync --frozen --no-dev; \
+    elif [ -f requirements.txt ]; then \
+        uv venv && \
+        uv pip install -r requirements.txt; \
+    fi
 
-RUN uv sync --frozen --no-dev
 
-FROM python:$PYTHON_VERSION-slim-bookworm
-COPY --from=builder /build /code
+FROM python:${PYTHON_VERSION}-slim-bookworm
+
 WORKDIR /code
-ENV PATH="/code/.venv/bin:$PATH"
 
-RUN apt-get update && apt-get install -y --no-install-recommends curl \
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    HOST=0.0.0.0 \
+    PORT=8000 \
+    PATH="/code/.venv/bin:$PATH"
+
+COPY --from=builder /build /code
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
+# اسکریپت اجرای برنامه
 COPY start-railway.sh /start-railway.sh
-RUN chmod +x /start-railway.sh /code/start.sh
 
-# این خط به Railway می‌گوید پنل روی کدام پورت گوش می‌دهد تا موقع ساخت
-# دامنه، پورت درست را خودش به‌صورت خودکار تشخیص دهد.
+RUN chmod +x /start-railway.sh && \
+    if [ -f /code/start.sh ]; then chmod +x /code/start.sh; fi
+
 EXPOSE 8000
 
 ENTRYPOINT ["/start-railway.sh"]
