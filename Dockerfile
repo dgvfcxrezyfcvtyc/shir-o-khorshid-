@@ -62,4 +62,19 @@ RUN chmod +x /start-railway.sh \
 
 EXPOSE 8000
 
-ENTRYPOINT ["/start-railway.sh"]
+ENTRYPOINT ["/start-railway.sh]
+# syntax=docker/dockerfile:1
+
+FROM oven/bun:1
+
+WORKDIR /app
+
+COPY package.json bun.lockb* ./
+
+RUN bun install
+
+COPY . .
+
+EXPOSE 3000
+
+CMD ["bun", "run", "start"]
