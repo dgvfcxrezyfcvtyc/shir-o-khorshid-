@@ -77,4 +77,15 @@ COPY . .
 
 EXPOSE 3000
 
-CMD ["bun", "run", "start"]
+CMD ["bun", "run", "start"] 
+FROM python:3.12-slim
+
+WORKDIR /app
+
+COPY . .
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+EXPOSE 8000
+
+CMD ["python", "main.py"]
