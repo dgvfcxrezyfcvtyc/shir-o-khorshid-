@@ -24,6 +24,10 @@ import os
 from fastapi import FastAPI
 
 app = FastAPI()
+COPY start-railway.sh /start-railway.sh
+RUN chmod +x /start-railway.sh
+
+ENTRYPOINT ["/start-railway.sh"]
 
 @app.get("/")
 def home():
